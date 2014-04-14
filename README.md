@@ -2,7 +2,7 @@ localisation_parser
 ===================
 
 Small script to generate iOS and Android localisation files from tsv/csv
-Works at least in Mac environments (maybe also in Linux)
+Works atleast in Mac environments (maybe also in Linux)
 
 Usage:
 

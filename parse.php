@@ -65,13 +65,11 @@ for ($i = 1; $i < count($argv);$i++) {
         break;
       }
       case "-o" : {
-        //$num = strrpos($argv[$i+1],"/");
         if  (strrpos($argv[$i+1],"/") != strlen($argv[$i+1])-1) {
           $output  = $argv[$i+1]."/";
         } else {
           $output = $argv[$i+1];
         }
-        echo "\n -o ".$output."\n";
         break;
       }
       case "-separator" : {
@@ -97,7 +95,7 @@ $languages_count = count($firstline) - constant("kFL");
 
 //create language array
 for ($k = 1; $k < $count;$k++) {
-  $linearray = preg_split('/\t/', $fullfile[$k]);
+  $linearray = preg_split('/'.$separator.'/', $fullfile[$k]);
   $header[$k] = $linearray[0];
   $info[$k] = $linearray[kDESC];
   $type[$k] = $linearray[kTYPE];

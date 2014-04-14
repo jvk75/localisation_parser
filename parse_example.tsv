@@ -1,0 +1,10 @@
+	DESCRIPTION	TYPE	INDEX	KEY	EN	FI
+HEADER1						
+	String			LOC_KEY_A	English string	Suomi teksti
+	Array of strings1	Array	1	LOC_ARRAY_KEY_B	English first array 1	Suomi eka taulukko 1
+	Array of strings1	Array	2	LOC_ARRAY_KEY_B	English first array 2	Suomi eka taulukko 2
+	Array of strings2	Array	0	LOC_ARRAY_KEY_C	English second array 0	Suomi toka taulukko 0
+	Array of strings2	Array	1	LOC_ARRAY_KEY_C	English second array 1	Suomi toka taulukko 1
+HEADER2						
+	Another string			LOC_KEY_D	English string {int}	Suomi teksti {int}
+	Another string			LOC_KEY_E	English {string}	Suomi {string}

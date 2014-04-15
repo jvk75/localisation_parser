@@ -20,9 +20,9 @@ function fix_string($string,$os)
     for ($t = 0; $t < count($match[0]);$t++) {
       $string = str_replace($match[0][$t], $replace[$os][$match[1][$t]], $string);
     }
-    return $string;
+    return addslashes($string);
   }
-  return $string;
+  return addslashes($string);
 }
 
 
@@ -106,6 +106,11 @@ for ($k = 1; $k < $count;$k++) {
   }
 }
 
+//generation date
+date_default_timezone_set("UTC");
+$generated = "File generated: ".date("j.n.Y - H:i:s e",time());
+
+
 //ios file generation
 if ($os == "ios" | $os == "all") {
   $count = count($key);
@@ -113,9 +118,9 @@ if ($os == "ios" | $os == "all") {
     for ($j = 1; $j < $count+1; $j++) {
       if (strlen($key[$j]) > 0) {
         if ($type[$j] == "Array") {
-          $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".addslashes(trim($key[$j]))."[".$index[$j]."]\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
+          $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".trim($key[$j])."[".$index[$j]."]\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
         } else {
-          $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".addslashes(trim($key[$j]))."\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
+          $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".trim($key[$j])."\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
         }
       } else {
         $to_file[$kk][$j] = "\n/* ".$header[$j]." */\n";
@@ -124,8 +129,9 @@ if ($os == "ios" | $os == "all") {
   }
 
   //create files
+  $genstr = "/*".$generated."*/\n";
   foreach ($to_file as $keys => $value) {
-    file_force_contents($output.$keys.".lproj/Localizable.strings",$value);
+    file_force_contents($output.$keys.".lproj/Localizable.strings",$genstr.implode($value));
   }
   unset($value);
   unset($keys);
@@ -140,7 +146,7 @@ if ($os == "android" | $os == "all") {
       if (strlen($key[$j]) > 0) {
         if ($type[$j] == "Array") {
           $array_key = addslashes(trim($key[$j]));
-          $to_file[$kk][$j] = "  <!-- ".$info[$j]." --> \n  <string-array name=\"".addslashes(trim($key[$j]))."\">\n    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
+          $to_file[$kk][$j] = "  <!-- ".$info[$j]." --> \n  <string-array name=\"".trim($key[$j])."\">\n    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
         $j++;
           while ($type[$j] == "Array" && $array_key == addslashes(trim($key[$j]))) {
             $to_file[$kk][$j] = "    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
@@ -149,7 +155,7 @@ if ($os == "android" | $os == "all") {
           $j--;
           $to_file[$kk][$j] .= "  </string-array>\n";
         } else {
-          $to_file[$kk][$j] = "  <!-- ".$info[$j]." --> \n"."  <string name=\"".addslashes(trim($key[$j]))."\">".fix_string($language[$kk][$j],"android")."</string>\n";
+          $to_file[$kk][$j] = "  <!-- ".$info[$j]." --> \n"."  <string name=\"".trim($key[$j])."\">".fix_string($language[$kk][$j],"android")."</string>\n";
         }
       } else {
         $to_file[$kk][$j] = "\n  <!-- ".$header[$j]." --> \n";
@@ -158,7 +164,7 @@ if ($os == "android" | $os == "all") {
   }
 
   //create files
-  $android_file_start = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n";
+  $android_file_start = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n  <!--".$generated."-->\n";
   $android_file_end = "</resources>\n";
   foreach ($to_file as $keys => $value) {
     file_force_contents($output."values-".$keys."/strings.xml",$android_file_start.implode($value).$android_file_end);

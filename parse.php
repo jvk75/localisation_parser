@@ -20,9 +20,9 @@ function fix_string($string,$os)
     for ($t = 0; $t < count($match[0]);$t++) {
       $string = str_replace($match[0][$t], $replace[$os][$match[1][$t]], $string);
     }
-    return addslashes($string);
   }
-  return addslashes($string);
+  $fix_new_line = str_replace("\\\\n", "\\n", addslashes($string));
+  return $fix_new_line;
 }
 
 

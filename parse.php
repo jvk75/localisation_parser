@@ -21,6 +21,10 @@ function fix_string($string,$os)
       $string = str_replace($match[0][$t], $replace[$os][$match[1][$t]], $string);
     }
   }
+  if ($os == "android") {
+    $string = htmlspecialchars($string,ENT_NOQUOTES);
+  }
+
   $fix_new_line = str_replace("\\\\n", "\\n", addslashes($string));
   return $fix_new_line;
 }

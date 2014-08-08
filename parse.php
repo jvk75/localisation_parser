@@ -48,6 +48,8 @@ $os = "all";
 $file = "";
 $output = "./";
 $separator = "\t";
+$sk = FALSE;
+$force = FALSE;
 for ($i = 1; $i < count($argv);$i++) {
   $option = strstr($argv[$i],"-");
   if (count($option) > 0){
@@ -80,6 +82,15 @@ for ($i = 1; $i < count($argv);$i++) {
         $separator = $argv[$i+1];
         break;
       }
+      case "-sf" : {
+        $sf = TRUE;
+        break;
+      }
+      case "-force" : {
+        $force = TRUE;
+        break;
+      }
+
     }
   }
 }
@@ -114,6 +125,7 @@ for ($k = 1; $k < $count;$k++) {
 date_default_timezone_set("UTC");
 $generated = "File generated: ".date("j.n.Y - H:i:s e",time());
 
+$ignoreLanguage = array();
 
 //ios file generation
 if ($os == "ios" | $os == "all") {
@@ -121,6 +133,9 @@ if ($os == "ios" | $os == "all") {
   foreach ($language as $kk => $vv) {
     for ($j = 1; $j < $count+1; $j++) {
       if (strlen($key[$j]) > 0) {
+        if (!strlen($language[$kk][$j]) > 0 && !$force) {
+          $ignoreLanguage[$kk] = 1;
+        }
         if ($type[$j] == "Array") {
           $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".trim($key[$j])."[".$index[$j]."]\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
         } else {
@@ -135,11 +150,14 @@ if ($os == "ios" | $os == "all") {
   //create files
   $genstr = "/*".$generated."*/\n";
   foreach ($to_file as $keys => $value) {
-    file_force_contents($output.$keys.".lproj/Localizable.strings",$genstr.implode($value));
+    if  (!isset($ignoreLanguage[$keys])) {
+      file_force_contents($output.$keys.".lproj/Localizable.strings",$genstr.implode($value));
+    }
   }
   unset($value);
   unset($keys);
   unset($to_file);
+  unset($ignoreLanguage);
 }
 
 //android file generation
@@ -148,6 +166,9 @@ if ($os == "android" | $os == "all") {
   foreach ($language as $kk => $vv) {
     for ($j = 1; $j < $count+1; $j++) {
       if (strlen($key[$j]) > 0) {
+        if (!strlen($language[$kk][$j]) > 0 && !$force) {
+          $ignoreLanguage[$kk] = 1;
+        }
         if ($type[$j] == "Array") {
           $array_key = addslashes(trim($key[$j]));
           $to_file[$kk][$j] = "  <!-- ".$info[$j]." --> \n  <string-array name=\"".trim($key[$j])."\">\n    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
@@ -166,17 +187,30 @@ if ($os == "android" | $os == "all") {
       }
     }
   }
-
   //create files
   $android_file_start = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n  <!--".$generated."-->\n";
   $android_file_end = "</resources>\n";
   foreach ($to_file as $keys => $value) {
-    file_force_contents($output."values-".$keys."/strings.xml",$android_file_start.implode($value).$android_file_end);
+    if  (!isset($ignoreLanguage[$keys])) {
+      file_force_contents($output."values-".$keys."/strings.xml",$android_file_start.implode($value).$android_file_end);
+    }
   }
   unset($value);
   unset($keys);
   unset($to_file);
+  unset($ignoreLanguage);
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 ?>

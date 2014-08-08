@@ -6,7 +6,7 @@ Works atleast in Mac environments (maybe also in Linux)
 
 Usage:
 ```
-%> php parse.php -i <file> [-o <output dir>] [-ios | -android | -all] [-separator <sheet separator>]
+%> php parse.php -i <file> [-o <output dir>] [-ios | -android | -all] [-separator <sheet separator>] [-force]
 
 -i <file>                     : input file (tsv, csv, ...)
 -o <output dir>               : directory where files will be generated
@@ -16,6 +16,7 @@ Usage:
 -android                      : Generate only Android files
 -all                          : Generate all supported platforms (default)
 -separator <sheet separator>  : Column seprator in input file (default tab "\t")
+-force                        : Generates files to languages which translation is not complete
 ```
 
 

@@ -48,7 +48,7 @@ $os = "all";
 $file = "";
 $output = "./";
 $separator = "\t";
-$sk = FALSE;
+$mf = FALSE;
 $force = FALSE;
 for ($i = 1; $i < count($argv);$i++) {
   $option = strstr($argv[$i],"-");
@@ -82,8 +82,8 @@ for ($i = 1; $i < count($argv);$i++) {
         $separator = $argv[$i+1];
         break;
       }
-      case "-sf" : {
-        $sf = TRUE;
+      case "-multifile" : {
+        $mf = TRUE;
         break;
       }
       case "-force" : {
@@ -171,30 +171,54 @@ if ($os == "android" | $os == "all") {
         }
         if ($type[$j] == "Array") {
           $array_key = addslashes(trim($key[$j]));
-          $to_file[$kk][$j] = "  <!-- ".$info[$j]." --> \n  <string-array name=\"".trim($key[$j])."\">\n    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
+          $to_file[$kk][$headers][$j] = "  <!-- ".$info[$j]." --> \n  <string-array name=\"".trim($key[$j])."\">\n    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
         $j++;
           while ($type[$j] == "Array" && $array_key == addslashes(trim($key[$j]))) {
-            $to_file[$kk][$j] = "    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
+            $to_file[$kk][$headers][$j] = "    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
             $j++;
           }
           $j--;
-          $to_file[$kk][$j] .= "  </string-array>\n";
+          $to_file[$kk][$headers][$j] .= "  </string-array>\n";
         } else {
-          $to_file[$kk][$j] = "  <!-- ".$info[$j]." --> \n"."  <string name=\"".trim($key[$j])."\">".fix_string($language[$kk][$j],"android")."</string>\n";
+          $to_file[$kk][$headers][$j] = "  <!-- ".$info[$j]." --> \n"."  <string name=\"".trim($key[$j])."\">".fix_string($language[$kk][$j],"android")."</string>\n";
         }
       } else {
-        $to_file[$kk][$j] = "\n  <!-- ".$header[$j]." --> \n";
+        $headers = $header[$j];
+        $to_file[$kk][$headers][$j] = "\n  <!-- ".$header[$j]." --> \n";
       }
     }
   }
+
   //create files
   $android_file_start = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n  <!--".$generated."-->\n";
   $android_file_end = "</resources>\n";
-  foreach ($to_file as $keys => $value) {
-    if  (!isset($ignoreLanguage[$keys])) {
-      file_force_contents($output."values-".$keys."/strings.xml",$android_file_start.implode($value).$android_file_end);
+
+  if ($mf) {
+    foreach ($to_file as $keys => $values) {
+      if  (!isset($ignoreLanguage[$keys])) {
+        foreach ($values as $key => $value) {
+          file_force_contents($output."values-".$keys."/".strtolower($key)."-strings.xml",$android_file_start.implode($value).$android_file_end);
+        }
+      }
+    }
+  } else {
+    foreach ($to_file as $keys => $values) {
+      if  (!isset($ignoreLanguage[$keys])) {
+        $gen_string = $android_file_start;
+        foreach ($values as $key => $value) {
+          $gen_string .=implode($value);
+        }
+        $gen_string .= $android_file_end;
+        file_force_contents($output."values-".$keys."/strings.xml",$gen_string);
+      }
     }
   }
+
+
+
+
+
+
   unset($value);
   unset($keys);
   unset($to_file);

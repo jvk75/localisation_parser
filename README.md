@@ -1,8 +1,7 @@
 localisation_parser
 ===================
 
-Small script to generate iOS and Android localisation files from tsv/csv
-Works atleast in Mac environments (maybe also in Linux)
+Small php script to generate iOS, Android and Laravel (php array) localisation files from tsv/csv
 
 Usage:
 ```

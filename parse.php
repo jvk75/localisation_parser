@@ -9,7 +9,9 @@ define("kFL", 5);    // first language column
 
 //replace array
 $replace = array("ios" => array("int" => "%ld", "string" => "%@", "float" => "%.2f"),
-             "android" => array("int" =>  "%d", "string" => "%s", "float" => "%.2f"));
+             "android" => array("int" =>  "%d", "string" => "%s", "float" => "%.2f"),
+             "laravel" => array("int" =>  "%d", "string" => "%s", "float" => "%.2f"),
+             );
 
 // helper functions
 function fix_string($string,$os)
@@ -62,6 +64,10 @@ for ($i = 1; $i < count($argv);$i++) {
         $os = "android";
         break;
       }
+      case "-laravel" : {
+        $os = "laravel";
+        break;
+      }
       case "-all" : {
         $os = "all";
         break;
@@ -90,7 +96,10 @@ for ($i = 1; $i < count($argv);$i++) {
         $force = TRUE;
         break;
       }
-
+      case "-of" : {
+        $output_file_name = $argv[$i+1];
+        break;
+      }
     }
   }
 }
@@ -104,9 +113,24 @@ if (file_exists($file)) {
 }
 $count = count($fullfile);
 
+
 //parse first line to get # languages
 $firstline = preg_split('/'.$separator.'/', $fullfile[0]);
 $languages_count = count($firstline) - constant("kFL");
+
+//get output filename for Laravel
+if (!isset($output_file_name) && ($os == "laravel" || $os == "all")) {
+  $output_file_name = strtolower($firstline[0]);
+  if (strlen($output_file_name) < 1) {
+    echo "ERROR: No output file name! Use '-of <name>'' option or add file name to first cell of the input file".PHP_EOL;
+    exit;
+  }
+} else {
+  if (strlen($output_file_name) < 1) {
+    echo "ERROR: No output file name! Use '-of <name>'' option or add file name to first cell of the input file".PHP_EOL;
+    exit;
+  }
+}
 
 //create language array
 for ($k = 1; $k < $count;$k++) {
@@ -213,12 +237,6 @@ if ($os == "android" | $os == "all") {
       }
     }
   }
-
-
-
-
-
-
   unset($value);
   unset($keys);
   unset($to_file);
@@ -226,6 +244,41 @@ if ($os == "android" | $os == "all") {
 }
 
 
+//laravel file generation
+//ios file generation
+if ($os == "laravel" | $os == "all") {
+  $count = count($key);
+  foreach ($language as $kk => $vv) {
+    for ($j = 1; $j < $count+1; $j++) {
+      if (strlen($key[$j]) > 0) {
+        if (!strlen($language[$kk][$j]) > 0 && !$force) {
+          $ignoreLanguage[$kk] = 1;
+        }
+        if ($type[$j] == "Array") {
+          $to_file[$kk][$j] = "    /*".$info[$j]."*/".PHP_EOL."    \"".trim($key[$j])."_".$index[$j]."\""." => "."\"".fix_string($language[$kk][$j],"laravel")."\",".PHP_EOL;
+        } else {
+          $to_file[$kk][$j] = "    /*".$info[$j]."*/".PHP_EOL."    \"".trim($key[$j])."\""." => "."\"".fix_string($language[$kk][$j],"laravel")."\",".PHP_EOL;
+        }
+      } else {
+        $to_file[$kk][$j] = PHP_EOL."    /* ".$header[$j]." */".PHP_EOL;
+      }
+    }
+  }
+
+  //create files
+  $laravel_file_start = "<?php".PHP_EOL."  /*".$generated."*/".PHP_EOL."  return [";
+  $laravel_file_end = "  ];".PHP_EOL."?>".PHP_EOL;
+
+  foreach ($to_file as $keys => $value) {
+    if  (!isset($ignoreLanguage[$keys])) {
+      file_force_contents($output.$keys."/".$output_file_name.".php",$laravel_file_start.implode($value).$laravel_file_end);
+    }
+  }
+  unset($value);
+  unset($keys);
+  unset($to_file);
+  unset($ignoreLanguage);
+}
 
 
 

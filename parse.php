@@ -100,187 +100,237 @@ for ($i = 1; $i < count($argv);$i++) {
         $output_file_name = $argv[$i+1];
         break;
       }
+      case "-link" : {
+        $link = $argv[$i+1];
+        break;
+      }
+      case "-linkfile" : {
+        $linkfile = $argv[$i+1];
+        break;
+      }
     }
   }
 }
 
-if (file_exists($file)) {
-  echo "input file: ".$file."\n";
-  $fullfile = file($file);
+if (file_exists($file) || isset($link) || isset($linkfile)) {
+  echo "input file/link/linkFile: ".$file.$link.$linkfile."\n";
+  if (isset($linkfile)) {
+    if ($os != "laravel") {
+      echo "ERROR: linkfile only supported for Laravel (php arrays)".PHP_EOL;
+      exit;
+    }
+    require($linkfile);
+  } else if (isset($link)) {
+    $fullfile = file($link);
+  } else {
+    $fullfile = file($file);
+  }
 } else {
-  echo "\nERROR: No input file. Use -i <file> option.\n";
+  echo "\nERROR: No input file. Use -i <file>, -link <link> or -linkfile <file> option.\n";
   exit;
 }
-$count = count($fullfile);
 
-
-//parse first line to get # languages
-$firstline = preg_split('/'.$separator.'/', $fullfile[0]);
-$languages_count = count($firstline) - constant("kFL");
-
-//get output filename for Laravel
-if (!isset($output_file_name) && ($os == "laravel" || $os == "all")) {
-  $output_file_name = strtolower($firstline[0]);
-  if (strlen($output_file_name) < 1) {
-    echo "ERROR: No output file name! Use '-of <name>'' option or add file name to first cell of the input file".PHP_EOL;
-    exit;
+if (isset($fileArray)) {
+  foreach ($fileArray as $key => $value) {
+    unset($output_file_name);
+    if (strlen($value) >= 100+3) {
+      echo "-> key: ".$key." value: ".substr($value, 0, 50). "..." . substr($value, -50).PHP_EOL;
+    }
+    else {
+      echo "-> key: ".$key." value: ".$value.PHP_EOL;
+    }
+    parse(file($fileArray[$key]));
   }
 } else {
-  if (strlen($output_file_name) < 1) {
-    echo "ERROR: No output file name! Use '-of <name>'' option or add file name to first cell of the input file".PHP_EOL;
-    exit;
-  }
+  parse($fullfile);
 }
 
-//create language array
-for ($k = 1; $k < $count;$k++) {
-  $linearray = preg_split('/'.$separator.'/', $fullfile[$k]);
-  $header[$k] = $linearray[0];
-  $info[$k] = $linearray[kDESC];
-  $type[$k] = $linearray[kTYPE];
-  $key[$k] = $linearray[kKEY];
-  $index[$k] = $linearray[kINDEX];
-  for ($h = 0; $h < $languages_count; $h++){
-    $language[trim(strtolower($firstline[$h+kFL]))][$k] = trim($linearray[$h+kFL]);
-  }
-}
 
-//generation date
-date_default_timezone_set("UTC");
-$generated = "File generated: ".date("j.n.Y - H:i:s e",time());
+function parse($fullfile) {
+  
+  global $separator;
+  global $os;
+  global $file;
+  global $output;
+  global $separator;
+  global $mf;
+  global $force;
+  global $output_file_name;
 
-$ignoreLanguage = array();
+  $count = count($fullfile);
 
-//ios file generation
-if ($os == "ios" | $os == "all") {
-  $count = count($key);
-  foreach ($language as $kk => $vv) {
-    for ($j = 1; $j < $count+1; $j++) {
-      if (strlen($key[$j]) > 0) {
-        if (!strlen($language[$kk][$j]) > 0 && !$force) {
-          $ignoreLanguage[$kk] = 1;
-        }
-        if ($type[$j] == "Array") {
-          $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".trim($key[$j])."[".$index[$j]."]\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
-        } else {
-          $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".trim($key[$j])."\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
-        }
-      } else {
-        $to_file[$kk][$j] = "\n/* ".$header[$j]." */\n";
-      }
-    }
-  }
+  //parse first line to get # languages
+  $firstline = preg_split('/'.$separator.'/', $fullfile[0]);
+  $languages_count = count($firstline) - constant("kFL");
 
-  //create files
-  $genstr = "/*".$generated."*/\n";
-  foreach ($to_file as $keys => $value) {
-    if  (!isset($ignoreLanguage[$keys])) {
-      file_force_contents($output.$keys.".lproj/Localizable.strings",$genstr.implode($value));
-    }
-  }
-  unset($value);
-  unset($keys);
-  unset($to_file);
-  unset($ignoreLanguage);
-}
-
-//android file generation
-if ($os == "android" | $os == "all") {
-  $count = count($key);
-  foreach ($language as $kk => $vv) {
-    for ($j = 1; $j < $count+1; $j++) {
-      if (strlen($key[$j]) > 0) {
-        if (!strlen($language[$kk][$j]) > 0 && !$force) {
-          $ignoreLanguage[$kk] = 1;
-        }
-        if ($type[$j] == "Array") {
-          $array_key = addslashes(trim($key[$j]));
-          $to_file[$kk][$headers][$j] = "  <!-- ".$info[$j]." --> \n  <string-array name=\"".trim($key[$j])."\">\n    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
-        $j++;
-          while ($type[$j] == "Array" && $array_key == addslashes(trim($key[$j]))) {
-            $to_file[$kk][$headers][$j] = "    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
-            $j++;
-          }
-          $j--;
-          $to_file[$kk][$headers][$j] .= "  </string-array>\n";
-        } else {
-          $to_file[$kk][$headers][$j] = "  <!-- ".$info[$j]." --> \n"."  <string name=\"".trim($key[$j])."\">".fix_string($language[$kk][$j],"android")."</string>\n";
-        }
-      } else {
-        $headers = $header[$j];
-        $to_file[$kk][$headers][$j] = "\n  <!-- ".$header[$j]." --> \n";
-      }
-    }
-  }
-
-  //create files
-  $android_file_start = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n  <!--".$generated."-->\n";
-  $android_file_end = "</resources>\n";
-
-  if ($mf) {
-    foreach ($to_file as $keys => $values) {
-      if  (!isset($ignoreLanguage[$keys])) {
-        foreach ($values as $key => $value) {
-          file_force_contents($output."values-".$keys."/".strtolower($key)."-strings.xml",$android_file_start.implode($value).$android_file_end);
-        }
-      }
+  //get output filename for Laravel
+  if (!isset($output_file_name) && ($os == "laravel" || $os == "all")) {
+    $output_file_name = strtolower($firstline[0]);
+    if (strlen($output_file_name) < 1) {
+      echo "ERROR: No output file name! Use '-of <name>'' option or add file name to first cell of the input file".PHP_EOL;
+      exit;
     }
   } else {
-    foreach ($to_file as $keys => $values) {
-      if  (!isset($ignoreLanguage[$keys])) {
-        $gen_string = $android_file_start;
-        foreach ($values as $key => $value) {
-          $gen_string .=implode($value);
-        }
-        $gen_string .= $android_file_end;
-        file_force_contents($output."values-".$keys."/strings.xml",$gen_string);
-      }
+    if (strlen($output_file_name) < 1 && ($os == "laravel" || $os == "all")) {
+      echo "ERROR: No output file name! Use '-of <name>'' option or add file name to first cell of the input file".PHP_EOL;
+      exit;
     }
   }
-  unset($value);
-  unset($keys);
-  unset($to_file);
-  unset($ignoreLanguage);
-}
 
+  //create language array
+  for ($k = 1; $k < $count;$k++) {
+    $linearray = preg_split('/'.$separator.'/', $fullfile[$k]);
+    $header[$k] = $linearray[0];
+    $info[$k] = $linearray[kDESC];
+    $type[$k] = $linearray[kTYPE];
+    $key[$k] = $linearray[kKEY];
+    $index[$k] = $linearray[kINDEX];
+    for ($h = 0; $h < $languages_count; $h++){
+      $language[trim(strtolower($firstline[$h+kFL]))][$k] = trim($linearray[$h+kFL]);
+    }
+  }
 
-//laravel file generation
-//ios file generation
-if ($os == "laravel" | $os == "all") {
-  $count = count($key);
-  foreach ($language as $kk => $vv) {
-    for ($j = 1; $j < $count+1; $j++) {
-      if (strlen($key[$j]) > 0) {
-        if (!strlen($language[$kk][$j]) > 0 && !$force) {
-          $ignoreLanguage[$kk] = 1;
-        }
-        if ($type[$j] == "Array") {
-          $to_file[$kk][$j] = "    /*".$info[$j]."*/".PHP_EOL."    \"".trim($key[$j])."_".$index[$j]."\""." => "."\"".fix_string($language[$kk][$j],"laravel")."\",".PHP_EOL;
+  //generation date
+  date_default_timezone_set("UTC");
+  $generated = "File generated: ".date("j.n.Y - H:i:s e",time());
+
+  $ignoreLanguage = array();
+
+  //ios file generation
+  if ($os == "ios" | $os == "all") {
+    $count = count($key);
+    foreach ($language as $kk => $vv) {
+      for ($j = 1; $j < $count+1; $j++) {
+        if (strlen($key[$j]) > 0) {
+          if (!strlen($language[$kk][$j]) > 0 && !$force) {
+            $ignoreLanguage[$kk] = 1;
+          }
+          if (strlen($language[$kk][$j]) > 0) {
+            if ($type[$j] == "Array") {
+              $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".trim($key[$j])."[".$index[$j]."]\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
+            } else {
+              $to_file[$kk][$j] = "/*".$info[$j]."*/\n"."\"".trim($key[$j])."\""." = "."\"".fix_string($language[$kk][$j],"ios")."\";\n";
+            }
+          }
         } else {
-          $to_file[$kk][$j] = "    /*".$info[$j]."*/".PHP_EOL."    \"".trim($key[$j])."\""." => "."\"".fix_string($language[$kk][$j],"laravel")."\",".PHP_EOL;
+          $to_file[$kk][$j] = "\n/* ".$header[$j]." */\n";
         }
-      } else {
-        $to_file[$kk][$j] = PHP_EOL."    /* ".$header[$j]." */".PHP_EOL;
       }
     }
-  }
 
-  //create files
-  $laravel_file_start = "<?php".PHP_EOL."  /*".$generated."*/".PHP_EOL."  return [";
-  $laravel_file_end = "  ];".PHP_EOL."?>".PHP_EOL;
-
-  foreach ($to_file as $keys => $value) {
-    if  (!isset($ignoreLanguage[$keys])) {
-      file_force_contents($output.$keys."/".$output_file_name.".php",$laravel_file_start.implode($value).$laravel_file_end);
+    //create files
+    $genstr = "/*".$generated."*/\n";
+    foreach ($to_file as $keys => $value) {
+      if  (!isset($ignoreLanguage[$keys])) {
+        file_force_contents($output.$keys.".lproj/Localizable.strings",$genstr.implode($value));
+      }
     }
+    unset($value);
+    unset($keys);
+    unset($to_file);
+    unset($ignoreLanguage);
   }
-  unset($value);
-  unset($keys);
-  unset($to_file);
-  unset($ignoreLanguage);
+
+  //android file generation
+  if ($os == "android" | $os == "all") {
+    $count = count($key);
+    foreach ($language as $kk => $vv) {
+      for ($j = 1; $j < $count+1; $j++) {
+        if (strlen($key[$j]) > 0) {
+          if (!strlen($language[$kk][$j]) > 0 && !$force) {
+            $ignoreLanguage[$kk] = 1;
+          }
+          if (strlen($language[$kk][$j]) > 0) {
+            if ($type[$j] == "Array") {
+              $array_key = addslashes(trim($key[$j]));
+              $to_file[$kk][$headers][$j] = "  <!-- ".$info[$j]." --> \n  <string-array name=\"".trim($key[$j])."\">\n    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
+            $j++;
+              while ($type[$j] == "Array" && $array_key == addslashes(trim($key[$j]))) {
+                $to_file[$kk][$headers][$j] = "    <item>".fix_string($language[$kk][$j],"android")."</item>\n";
+                $j++;
+              }
+              $j--;
+              $to_file[$kk][$headers][$j] .= "  </string-array>\n";
+            } else {
+              $to_file[$kk][$headers][$j] = "  <!-- ".$info[$j]." --> \n"."  <string name=\"".trim($key[$j])."\">".fix_string($language[$kk][$j],"android")."</string>\n";
+            }
+          }
+        } else {
+          $headers = $header[$j];
+          $to_file[$kk][$headers][$j] = "\n  <!-- ".$header[$j]." --> \n";
+        }
+      }
+    }
+
+    //create files
+    $android_file_start = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n  <!--".$generated."-->\n";
+    $android_file_end = "</resources>\n";
+
+    if ($mf) {
+      foreach ($to_file as $keys => $values) {
+        if  (!isset($ignoreLanguage[$keys])) {
+          foreach ($values as $key => $value) {
+            file_force_contents($output."values-".$keys."/".strtolower($key)."-strings.xml",$android_file_start.implode($value).$android_file_end);
+          }
+        }
+      }
+    } else {
+      foreach ($to_file as $keys => $values) {
+        if  (!isset($ignoreLanguage[$keys])) {
+          $gen_string = $android_file_start;
+          foreach ($values as $key => $value) {
+            $gen_string .=implode($value);
+          }
+          $gen_string .= $android_file_end;
+          file_force_contents($output."values-".$keys."/strings.xml",$gen_string);
+        }
+      }
+    }
+    unset($value);
+    unset($keys);
+    unset($to_file);
+    unset($ignoreLanguage);
+  }
+
+
+  //laravel file generation
+  if ($os == "laravel" | $os == "all") {
+    $count = count($key);
+    foreach ($language as $kk => $vv) {
+      for ($j = 1; $j < $count+1; $j++) {
+        if (strlen($key[$j]) > 0) {
+          if (!strlen($language[$kk][$j]) > 0 && !$force) {
+            $ignoreLanguage[$kk] = 1;
+          }
+          if (strlen($language[$kk][$j]) > 0) {
+            if ($type[$j] == "Array") {
+              $to_file[$kk][$j] = "    /*".$info[$j]."*/".PHP_EOL."    \"".trim($key[$j])."_".$index[$j]."\""." => "."\"".fix_string($language[$kk][$j],"laravel")."\",".PHP_EOL;
+            } else {
+              $to_file[$kk][$j] = "    /*".$info[$j]."*/".PHP_EOL."    \"".trim($key[$j])."\""." => "."\"".fix_string($language[$kk][$j],"laravel")."\",".PHP_EOL;
+            }
+          }
+        } else {
+          $to_file[$kk][$j] = PHP_EOL."    /* ".$header[$j]." */".PHP_EOL;
+        }
+      }
+    }
+
+    //create files
+    $laravel_file_start = "<?php".PHP_EOL."  /*".$generated."*/".PHP_EOL."  return [";
+    $laravel_file_end = "  ];".PHP_EOL."?>".PHP_EOL;
+
+    foreach ($to_file as $keys => $value) {
+      if  (!isset($ignoreLanguage[$keys])) {
+        file_force_contents($output.$keys."/".$output_file_name.".php",$laravel_file_start.implode($value).$laravel_file_end);
+      }
+    }
+    unset($value);
+    unset($keys);
+    unset($to_file);
+    unset($ignoreLanguage);
+  }
+
 }
-
-
 
 
 

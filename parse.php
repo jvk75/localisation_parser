@@ -26,6 +26,9 @@ function fix_string($string,$os)
   if ($os == "android") {
     $string = htmlspecialchars($string,ENT_NOQUOTES);
   }
+  if ($os == "laravel") {
+    $string = htmlspecialchars($string,ENT_QUOTES);
+  }
 
   $fix_new_line = str_replace("\\\\n", "\\n", addslashes($string));
   return $fix_new_line;

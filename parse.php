@@ -57,7 +57,7 @@ $mf = FALSE;
 $force = FALSE;
 for ($i = 1; $i < count($argv);$i++) {
   $option = strstr($argv[$i],"-");
-  if (count($option) > 0){
+  if (strlen($option) > 0){
     switch ($option) {
       case "-ios" : {
         $os = "ios";
